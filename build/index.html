@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+
+<html>
+   <head>
+	   
+	   <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+        <meta content="width=device-width; initial-scale=1.0; maximum-scale=1.0;  user-scalable=0;" name="viewport">
+        <link rel="stylesheet" href="style.css">
+        
+      <title>OCT realtime</title>
+        
+        
+     
+      <script type = "text/javascript">
+          function displayNextImage() {
+              x = (x === slices.length - 1) ? 0 : x + 1;
+              document.getElementById("img1").src = slices[x];
+              document.getElementById("img2").src = bk[x];
+              document.getElementById("img3").src = res[x];
+          }
+
+          function displayPreviousImage() {
+              x = (x <= 0) ? slices.length - 1 : x - 1;
+              document.getElementById("img1").src = slices[x];
+              document.getElementById("img2").src = bk[x];
+              document.getElementById("img3").src = res[x];
+          }
+
+          function startTimer() {
+              setInterval(displayNextImage, 3000);
+          }
+
+          var slices = [], x = -1;
+          slices[0] = "slice001.png";
+          slices[1] = "slice002.png";
+          slices[2] = "slice003.png";
+          slices[3] = "slice004.png";
+          slices[4] = "slice005.png";
+          slices[5] = "slice006.png";
+          slices[6] = "slice007.png";
+          slices[7] = "slice008.png";
+          slices[8] = "slice009.png";
+          slices[9] = "slice010.png";
+          slices[10] = "slice011.png";
+          slices[11] = "slice012.png";
+          slices[12] = "slice013.png";
+          slices[13] = "slice014.png";
+          slices[14] = "slice015.png";
+          
+          var bk = [], x = -1;
+          bk[0] = "bk001.png";
+          bk[1] = "bk002.png";
+          bk[2] = "bk003.png";
+          bk[3] = "bk004.png";
+          bk[4] = "bk005.png";
+          bk[5] = "bk006.png";
+          bk[6] = "bk007.png";
+          bk[7] = "bk008.png";
+          bk[8] = "bk009.png";
+          bk[9] = "bk010.png";
+          bk[10] = "bk011.png";
+          bk[11] = "bk012.png";
+          bk[12] = "bk013.png";
+          bk[13] = "bk014.png";
+          bk[14] = "bk015.png";
+          
+          var res = [], x = -1;
+          res[0] = "res001.png";
+          res[1] = "res002.png";
+          res[2] = "res003.png";
+          res[3] = "res004.png";
+          res[4] = "res005.png";
+          res[5] = "res006.png";
+          res[6] = "res007.png";
+          res[7] = "res008.png";
+          res[8] = "res009.png";
+          res[9] = "res010.png";
+          res[10] = "res011.png";
+          res[11] = "res012.png";
+          res[12] = "res013.png";
+          res[13] = "res014.png";
+          res[14] = "res015.png";
+          
+      </script>
+   </head>
+
+   <body onload = "startTimer()">
+	   <img src="http://qrickit.com/api/qr.php?d=http://192.168.2.190/~mac/githubASK/build/&addtext=Slices&txtcolor=442EFF&fgdcolor=76103C
+&bgdcolor=C0F912&logotext=OCT&qrsize=150&t=p&e=m">
+<br>
+       <img id="img1" class="st" src="slice001.png"/>
+       <br>
+       <img id="img2" class="st" src="slice001.png"/>
+       <br>
+       <img id="img3" class="st" src="slice001.png"/>
+       <br>
+       <button type="button" onclick="displayPreviousImage()">Previous</button>
+       <button type="button" onclick="displayNextImage()">Next</button>
+   </body>
+</html>
