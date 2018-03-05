@@ -1,3 +1,13 @@
+#ifdef _WIN64
+#include "stdafx.h"
+// anything before a precompiled header is ignored, 
+// so no endif here!
+
+#ifdef _WIN64
+#include <qhyccd.h>
+#endif
+
+
 /*
  * modified from camexppixbinned.cpp
  * and LiveFrameSampleOCV.cpp
@@ -28,11 +38,6 @@
 #ifdef __unix__
 #include <unistd.h>
 #include <libqhy/qhyccd.h>
-#endif
-
-#ifdef _WIN64
-#include "stdafx.h"
-#include <qhyccd.h>
 #endif
 
 #include <string.h>
