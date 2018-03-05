@@ -16,14 +16,28 @@
  * modified 21 Feb to write inside acquisition loop
  * 			22 Feb to display live updating window with processing
  * 					including hilbert transform
+ *          5 Mar - cross-platform changes - ifdef directives
  */
- 
+
+//#define _WIN64
+//#define __unix__
+
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef __unix__
 #include <unistd.h>
-#include <string.h>
 #include <libqhy/qhyccd.h>
-#include <sys/time.h>
+#endif
+
+#ifdef _WIN64
+#include "stdafx.h"
+#include <qhyccd.h>
+#endif
+
+#include <string.h>
+
+#include <time.h>
 #include <sys/stat.h>
 // this is for mkdir
 
@@ -117,7 +131,8 @@ int main(int argc,char *argv[])
     h=480;
     
     int  fps, key, bscanat;
-    struct timeval tval_before, tval_after, tval_result;
+    int t_start,t_end;
+    
     std::ifstream infile("ASKlive.ini");
     std::string tempstring;
     
@@ -253,6 +268,8 @@ int main(int argc,char *argv[])
         }
         
         //ret = SetQHYCCDBinMode(camhandle,cambinx, cambiny); 
+        // this seems to cause crosshatching in image with old Linux SDK
+        /////////////////////////////////////////////////////////////
         //if(ret == QHYCCD_SUCCESS)
         //{
             ////printf("SetQHYCCDBinMode success - width = %d !\n", w); 
@@ -327,9 +344,11 @@ int main(int argc,char *argv[])
         moveWindow("Bscan", 800, 0);
         
         Mat m, hilb, xsquared, ysquared, absvalue, bscan;
-        Mat slice[numofm1slices];      // array of n images
-        Mat bk[numofm2slices];      // array of n images
-        Mat res[numofm1slices];
+        //Mat slice[numofm1slices];      // array of n images
+        // not allowed on Windows, so making it a constant
+        Mat slice[1000];
+        Mat bk[1000];      // array of n images
+        Mat res[1000];
         Mat realcomplex[2];			// for splitting complex into real and complex
         
         for (indexi=0; indexi<numofm1slices; indexi++)
@@ -384,7 +403,7 @@ int main(int argc,char *argv[])
             printf("CONTROL_EXPOSURE fail\n");
             goto failure;
         }
-        gettimeofday(&tval_before, NULL);
+        t_start = time(NULL);
         fps = 0;
         
         indexi = 0;
@@ -400,14 +419,12 @@ int main(int argc,char *argv[])
             imshow("show",m);
             
             fps++;
-            gettimeofday(&tval_after, NULL);
-            timersub(&tval_after, &tval_before, &tval_result);
-            
-                if((long int)tval_result.tv_sec >= 5)
+            t_end = time(NULL);
+                if(t_end - t_start >= 5)
                 {
                     printf("fps = %d\n",fps / 5); 
                     fps = 0;
-                    gettimeofday(&tval_before, NULL);
+                    t_start = time(NULL);
                 }
             
             
