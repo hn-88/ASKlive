@@ -1,8 +1,8 @@
 #ifdef _WIN64
 #include "stdafx.h"
 // anything before a precompiled header is ignored, 
-// so no endif here!
-
+// so no endif here! add #endif to compile on __unix__ !
+#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -26,7 +26,8 @@
  * modified 21 Feb to write inside acquisition loop
  * 			22 Feb to display live updating window with processing
  * 					including hilbert transform
- *          5 Mar - cross-platform changes - ifdef directives
+ *          05 Mar - cross-platform changes - ifdef directives
+ * 			29 Mar - normalizing the hilbert function's output
  */
 
 //#define _WIN64
@@ -77,6 +78,7 @@ Mat Hilbert(Mat m)
 		
 	// written for single channel only
 	// does not optimize DFT size by zero padding - assumes it is already optimal size.
+	// does row-wise Hilbert transform and not column-wise as in Matlab.
 	
 	m.convertTo(m,CV_64F);		// work with <double> single channel
 	Mat x, h, prod, hilb;	
@@ -110,6 +112,8 @@ Mat Hilbert(Mat m)
 	multiply(x, h, prod);
 	
 	dft(prod, hilb, DFT_INVERSE + DFT_ROWS + DFT_COMPLEX_OUTPUT);		// Inv Fourier transform rowwise
+	
+	hilb.convertTo(hilb, CV_64F, 1.0 / (1.1*cols) );	// normalizing the transform
 	
 	return hilb;				// output is of type CV_64FC2 - two channels because complex
 }
@@ -496,8 +500,8 @@ int main(int argc,char *argv[])
 									multiply(realcomplex[1], realcomplex[1], ysquared);	
 									add(xsquared, ysquared, res[indexbk]);
 									pow(res[indexbk], 0.5, res[indexbk]);
-									res[indexbk].convertTo(res[indexbk], CV_64F, 1.0/(10*std::pow(2.0, (cambitdepth))) ); 
-														//this seems to be the correct scale factor to normalize
+									res[indexbk].convertTo(res[indexbk], CV_64F, 1.0/(std::pow(2.0, cambitdepth)) ); 
+														//normalize res to 0-1 range since it is a double
 									
 									outfile<<"bk(:,:,";
 									outfile<<indexbk+1;		// making the output starting index 1 instead of 0		
@@ -567,6 +571,8 @@ int main(int argc,char *argv[])
         outfile<<"bscan=";
 		outfile<<bscan;
 		outfile<<";"<<std::endl;
+		
+		imwrite("bscan.png", bscan);
          
 		
     } // end of if found
