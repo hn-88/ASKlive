@@ -196,9 +196,6 @@ void loop()
            }
            
             //delay(40);
-            // 640x480 16 bit goes at 50 fps
-            // assuming a factor of 2 for safety, 
-            // 40 ms delay for 25 fps
             
             stopState = digitalRead(stopPin);
             if (stopState == LOW) { 
