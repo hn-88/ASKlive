@@ -53,6 +53,8 @@
 // #include <opencv/cv.h>
 // #include <opencv/highgui.h>
  
+ 
+#include <opencv2/plot.hpp>
 
 using namespace cv;
 
@@ -65,19 +67,19 @@ int main(int argc,char *argv[])
     char camtype[16];
     int found = 0;
     unsigned int w,h,bpp=8,channels,capturenumber, cambitdepth=16, numofframes=100;
-    unsigned int opw, oph, offsetx, offsety, whitevalue; 
+    unsigned int opw, oph, offsetx=0, offsety=0, whitevalue; 
     unsigned int numofm1slices=10, numofm2slices=10, firstaccum, secondaccum;
      
     int camtime = 1,camgain = 1,camspeed = 1,cambinx = 2,cambiny = 2,usbtraffic = 10;
     int camgamma = 1, indexi, indexbk;
     
-    std::ofstream outfile("ASKoutput.m");
+    std::ofstream outfile("PSFoutput.m");
     bool doneflag=0, skeypressed=0, bkeypressed=0;
     
     w=640;
     h=480;
     
-    int  fps, key, xpos, ypos, binvalue;
+    int  fps, key, xpos=0, ypos=0, binvalue=1;
     int t_start,t_end;
     
     std::ifstream infile("PSFlive.ini");
@@ -291,8 +293,21 @@ int main(int argc,char *argv[])
          
         namedWindow("show",0); // 0 = WINDOW_NORMAL
         moveWindow("show", 20, 0);
+        namedWindow("plot",0); // 0 = WINDOW_NORMAL
+        moveWindow("plot", 400, 300);
         
         Mat m, opm, dispm;
+        Mat plot_result;
+        Mat data_x( 1, numofm1slices, CV_64F );
+        Mat data_y( 1, numofm1slices, CV_64F );
+        
+        for ( int i = 0; i < data_x.cols; i++ )
+		{
+			data_x.at<double>( 0, i ) = i;
+			data_y.at<double>( 0, i ) = 178.0;
+		}
+
+        
         Point pt0, pt1, pt2;
         pt0 = Point(xpos, ypos);
         pt1 = Point(xpos-1, ypos-1);
@@ -301,6 +316,7 @@ int main(int argc,char *argv[])
         //Mat slice[numofm1slices];      // array of n images
         // not allowed on Windows, so making it a constant
         Mat slice[1000];
+        unsigned int pixvalue[1000];
          
         opw = w/binvalue;
         oph = h/binvalue;
@@ -366,13 +382,23 @@ int main(int argc,char *argv[])
             
             if (ret == QHYCCD_SUCCESS)  
             {
-            resize(m, opm, Size(), 1/binvalue, 1/binvalue, INTER_AREA);	// binvalue x binvalue binning (averaging)
-            dispm=opm;
+            resize(m, opm, Size(), 1.0/binvalue, 1.0/binvalue, INTER_AREA);	// binvalue x binvalue binning (averaging)
+            opm.copyTo(dispm);
           
             // create a rectangle around the pixel used for axial PSF
             // just for display
             
             rectangle(dispm, pt1, pt2, Scalar(whitevalue) );
+            
+            // plot the PSF
+            
+            Ptr<plot::Plot2d> plot = plot::Plot2d::create( data_x, -data_y );
+                //plot has y going downwards by default, so -data_y
+                //plot->setMinY(-255.0);
+                //plot->setMaxY(0.0);
+                plot->render(plot_result);
+                imshow( "plot", plot_result );
+                
             
             imshow("show",dispm);
             
@@ -399,19 +425,29 @@ int main(int argc,char *argv[])
 							skeypressed=0;	// accumulation of m1 is done
 							
 							if (cambitdepth==16)
-							slice[indexi].convertTo(slice[indexi], CV_16U, 1.0/numofframes);			// these were just accumulated,
+							{
+								slice[indexi].convertTo(slice[indexi], CV_16U, 1.0/numofframes);			// these were just accumulated,
 													// dividing by numofframes to get average value
+								pixvalue[indexi]=slice[indexi].at<ushort>(ypos,xpos);	// .at<type>(y,x)
+								data_y.at<double>( 0, indexi ) = pixvalue[indexi];
+							}
+							
 							if (cambitdepth==8)
-							slice[indexi].convertTo(slice[indexi], CV_8U, 1.0/numofframes);		
+							{
+								slice[indexi].convertTo(slice[indexi], CV_8U, 1.0/numofframes);	
+								pixvalue[indexi]=	slice[indexi].at<uchar>(ypos,xpos);
+								data_y.at<double>( 0, indexi ) = pixvalue[indexi];
+							}
 							
 							//outfile<<"%Data cube in MATLAB compatible format - m(w,h,slice)"<<std::endl;
 							// imagesc(slice(:,:,1)) shows the same image as is seen onscreen
 				
-							outfile<<"slice(:,:,";
+							/*
+							 * outfile<<"slice(:,:,";
 							outfile<<indexi+1;		// making the output starting index 1 instead of 0		
 							outfile<<")=";
 							outfile<<slice[indexi];
-							outfile<<";"<<std::endl;
+							outfile<<";"<<std::endl;*/
 							
 							char filename[80];
 							sprintf(filename, "slice%03d.png",indexi+1);
@@ -450,7 +486,12 @@ int main(int argc,char *argv[])
 			{
 				
 				numofm1slices=indexi;		// in case acquisition was aborted, no need to export a lot of zeros
-				 
+				
+				outfile<<"pixvalue=[";
+				for (int i = 0; i<numofm1slices-1; i++)
+					outfile<<pixvalue[i]<<", ";
+				outfile<<pixvalue[numofm1slices-1]; 
+				outfile<<"];";
                 break;
 			}   
 
