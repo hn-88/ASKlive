@@ -482,7 +482,12 @@ int main(int argc,char *argv[])
 							//char filename[80];
 							sprintf(filename, "slice%03d.png",indexi+1);
 							strcpy(pathname,dirname);
+							#ifdef _WIN64
+							strcat(pathname,"\\");
+							#endif
+							#ifdef __unix__
 							strcat(pathname,"/");
+							#endif
 							strcat(pathname,filename);
 							imwrite(pathname, slice[indexi]);
 							
@@ -544,7 +549,12 @@ int main(int argc,char *argv[])
 									
 									sprintf(filename, "res%03d.png",indexbk+1);
 									strcpy(pathname,dirname);
+									#ifdef _WIN64
+									strcat(pathname,"\\");
+									#endif
+									#ifdef __unix__
 									strcat(pathname,"/");
+									#endif
 									strcat(pathname,filename);
 									imwrite(pathname, res[indexbk]);
 									imshow("result", res[indexbk]);
@@ -598,7 +608,12 @@ int main(int argc,char *argv[])
 		outfile<<bscan;
 		outfile<<";"<<std::endl;*/
 		strcpy(pathname,dirname);
+		#ifdef _WIN64
+		strcat(pathname,"\\");
+		#endif
+		#ifdef __unix__
 		strcat(pathname,"/");
+		#endif
 		strcat(pathname,"bscan.png");
 		imwrite(pathname,bscan);
          
