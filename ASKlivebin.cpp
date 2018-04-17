@@ -31,6 +31,7 @@
  *           5 Mar - cross-platform changes - ifdef directives
  * 			15 Mar - adding 4x4 binning code
  * 			16 Apr - generalized binning code, saving to dir with timestamp
+ * 			17 Apr - vary exp time with + and -, switch case instead of if statements
  */
 
 //#define _WIN64
@@ -353,13 +354,15 @@ int main(int argc,char *argv[])
         namedWindow("Bscan",0); // 0 = WINDOW_NORMAL
         moveWindow("Bscan", 800, 0);
         
-        Mat m, opm, hilb, xsquared, ysquared, absvalue, bscan;
+        Mat m, opm, opmvector, hilb, xsquared, ysquared, absvalue, bscan;
         //Mat slice[numofm1slices];      // array of n images
         // not allowed on Windows, so making it a constant
         Mat slice[1000];
         Mat bk[1000];      // array of n images
         Mat res[1000];
         Mat realcomplex[2];			// for splitting complex into real and complex
+        double minVal, maxVal;
+        //minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
         
         opw = w/4;
         oph = h/4;
@@ -447,6 +450,10 @@ int main(int argc,char *argv[])
                 if(t_end - t_start >= 5)
                 {
                     printf("fps = %d\n",fps / 5); 
+                    opm.copyTo(opmvector);
+                    opmvector.reshape(0,1);	//make it into a row array
+                    minMaxLoc(opmvector, &minVal, &maxVal);
+                    printf("Max intensity = %d\n", int(floor(maxVal)));
                     fps = 0;
                     t_start = time(NULL);
                 }
@@ -576,18 +583,55 @@ int main(int argc,char *argv[])
 					 
                 key=waitKey(3); // wait 3 milliseconds for keypress
                 
-                if (key == 27) // ESC key
+                switch (key)
                 {
-					doneflag=1;
-				}
+					case 27: // ESC key
+						doneflag=1;
+						break;
+					
+					case '+':
+				 
+						camtime = camtime + 10;
+						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
+						if(ret == QHYCCD_SUCCESS)
+						{
+							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+						}
+						else
+						{
+							printf("CONTROL_EXPOSURE fail\n");
+							goto failure;
+						}
+						break;
+						
+					case '-':
+				 
+						camtime = camtime - 10;
+						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
+						if(ret == QHYCCD_SUCCESS)
+						{
+							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+						}
+						else
+						{
+							printf("CONTROL_EXPOSURE fail\n");
+							goto failure;
+						}
+						break;
+						
+					case 's':
+                 
+						if (indexi < numofm1slices)	// don't allow captures after the end of assigned number of slices
+						skeypressed=1;
+						break;
                 
-                if (key == 's')
-                if (indexi < numofm1slices)	// don't allow captures after the end of assigned number of slices
-                skeypressed=1;
-                
-                if (key == 'b')
-                if (indexbk < numofm2slices)	// don't allow captures after the end of assigned number of slices
-                bkeypressed=1;
+					case 'b':
+						if (indexbk < numofm2slices)	// don't allow captures after the end of assigned number of slices
+						bkeypressed=1;
+						break;
+						
+					default:
+						break;
                 
             } 
             
@@ -596,10 +640,10 @@ int main(int argc,char *argv[])
 				
 				numofm1slices=indexi;		// in case acquisition was aborted, no need to export a lot of zeros
 				numofm2slices=indexbk;
-				
-				
-                break;
-			}   
+                break;			// break out of while loop
+			}
+			
+		    } // if return success for getframe   
 
         } // while loop end
         
