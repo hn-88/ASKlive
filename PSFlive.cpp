@@ -26,6 +26,8 @@
  * Hari Nandakumar
  * 08 Apr 2018
  * 
+ * edit 20 Apr 2018 - save to directory, add directory info to ini file
+ * 
  */
 
 //#define _WIN64
@@ -73,7 +75,7 @@ int main(int argc,char *argv[])
     int camtime = 1,camgain = 1,camspeed = 1,cambinx = 2,cambiny = 2,usbtraffic = 10;
     int camgamma = 1, indexi, indexbk;
     
-    std::ofstream outfile("PSFoutput.m");
+    
     bool doneflag=0, skeypressed=0, bkeypressed=0;
     
     w=640;
@@ -84,6 +86,7 @@ int main(int argc,char *argv[])
     
     std::ifstream infile("PSFlive.ini");
     std::string tempstring;
+    char dirdescr[60];
     
     
     // inputs from ini file
@@ -125,6 +128,8 @@ int main(int argc,char *argv[])
 			infile >> offsetx;
 			infile >> tempstring;
 			infile >> offsety;
+			infile >> tempstring;
+			infile >> dirdescr;
 			infile.close();
 		  }
 
@@ -137,7 +142,6 @@ int main(int argc,char *argv[])
     secondaccum = firstaccum;
     cambitdepth = bpp;
     
-
     ret = InitQHYCCDResource();
     if(ret != QHYCCD_SUCCESS)
     {
@@ -304,7 +308,7 @@ int main(int argc,char *argv[])
         for ( int i = 0; i < data_x.cols; i++ )
 		{
 			data_x.at<double>( 0, i ) = i;
-			data_y.at<double>( 0, i ) = 178.0;
+			data_y.at<double>( 0, i ) = 128.0;
 		}
 
         
@@ -354,7 +358,7 @@ int main(int argc,char *argv[])
 
         /////////////////////////////////////////
         /////////////////////////////////////////
-        outfile<<"%Data cube in MATLAB compatible format - m(h,w,slice)"<<std::endl;
+        
         
         firstaccum=numofframes;
 		secondaccum=firstaccum;	
@@ -375,6 +379,24 @@ int main(int argc,char *argv[])
         
         indexi = 0;
         indexbk = 0;
+        
+        char dirname[80];
+		char filename[20];
+		char pathname[40];
+		struct tm *timenow;
+		
+		time_t now = time(NULL);
+		timenow = localtime(&now);
+		
+		strftime(dirname, sizeof(dirname), "%Y-%m-%d_%H_%M_%S-", timenow);
+		strcat(dirname, dirdescr);
+        mkdir(dirname, 0755);
+        sprintf(filename, "PSFoutput.m");
+		strcpy(pathname,dirname);
+		strcat(pathname,"/");
+		strcat(pathname,filename);
+        std::ofstream outfile(pathname);
+        //outfile<<"%Data cube in MATLAB compatible format - m(h,w,slice)"<<std::endl;
 	     
         while(1)
         { 
@@ -451,7 +473,10 @@ int main(int argc,char *argv[])
 							
 							char filename[80];
 							sprintf(filename, "slice%03d.png",indexi+1);
-							imwrite(filename, slice[indexi]);
+							strcpy(pathname,dirname);
+							strcat(pathname,"/");
+							strcat(pathname,filename);
+							imwrite(pathname, slice[indexi]);
 							
 							indexi++;
 							if (indexi < numofm1slices)
@@ -491,7 +516,23 @@ int main(int argc,char *argv[])
 				for (int i = 0; i<numofm1slices-1; i++)
 					outfile<<pixvalue[i]<<", ";
 				outfile<<pixvalue[numofm1slices-1]; 
-				outfile<<"];";
+				outfile<<"];"<<std::endl;
+				
+				outfile<<"% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, numofframesavg, numofm1slices, xpos, ypos, binvalue, offsetx, offsety"<<std::endl;
+				outfile<<"% "<<camgain; 
+				outfile<<", "<<camtime;  
+				outfile<<", "<<bpp; 
+				outfile<<", "<<w ; 
+				outfile<<", "<<h ; 
+				outfile<<", "<<camspeed ;
+				outfile<<", "<<usbtraffic ;
+				outfile<<", "<<numofframes ;
+				outfile<<", "<<numofm1slices ;
+				outfile<<", "<<xpos ;
+				outfile<<", "<<ypos ;
+				outfile<<", "<<binvalue ;
+				outfile<<", "<<offsetx ;
+				outfile<<", "<<offsety;
                 break;
 			}   
 
