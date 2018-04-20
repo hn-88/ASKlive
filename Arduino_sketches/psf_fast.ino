@@ -161,14 +161,14 @@ void loop()
                
           for (i = 0; i < pulseNos; i++) {
             digitalWrite(askPin, LOW);
-            for (inneri=0; inneri<12800; inneri++) {
+            for (inneri=0; inneri<1; inneri++) {
               digitalWrite(ledPin, HIGH);
               delayMicroseconds(10);
               digitalWrite(ledPin, LOW);
               delayMicroseconds(10); 
             }
             
-            //delay(1300);
+            delay(50);
             /*digitalWrite(trigPin, HIGH);
             delay(300);
             digitalWrite(trigPin, LOW);
@@ -178,10 +178,12 @@ void loop()
            Keyboard.press('s');
            delay(1);
             Keyboard.releaseAll();
-            delay(40);
+            delay(50);
             // 640x480 16 bit goes at 50 fps
             // assuming a factor of 2 for safety, 
             // 40 ms delay for 25 fps
+
+            // 50 ms + 50 ms delay works well for 640x480 10x10 bin no avg
             
             stopState = digitalRead(stopPin);
             if (stopState == LOW) { 
