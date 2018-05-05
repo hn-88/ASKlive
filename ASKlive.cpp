@@ -11,6 +11,8 @@
 /*
  * modified from camexppixbinned.cpp
  * and LiveFrameSampleOCV.cpp
+ * adding software binning from
+ * binsavedimages.cpp
  * 
  * Implementing ASK background subtraction
  * for TD OCT
@@ -23,11 +25,20 @@
  * 
  * Hari Nandakumar
  * 17 Feb 2018
+ * 15 Mar 2018 for ASKlivebin
+ 
  * modified 21 Feb to write inside acquisition loop
  * 			22 Feb to display live updating window with processing
  * 					including hilbert transform
  *          05 Mar - cross-platform changes - ifdef directives
+ * 			15 Mar - adding 4x4 binning code
+ * 			16 Apr - generalized binning code, saving to dir with timestamp
+ * 			17 Apr - vary exp time with + and -, switch case instead of if statements
  * 			29 Mar - normalizing the hilbert function's output
+ * 			
+ *			01 May - adding offset, save dir
+ * 			04 May - removed reload config code
+ * 			05 May - merge with ASKlivebin.cpp
  */
 
 //#define _WIN64
@@ -113,7 +124,7 @@ Mat Hilbert(Mat m)
 	
 	dft(prod, hilb, DFT_INVERSE + DFT_ROWS + DFT_COMPLEX_OUTPUT);		// Inv Fourier transform rowwise
 	
-	hilb.convertTo(hilb, CV_64F, 1.0 / (1.1*cols) );	// normalizing the transform
+	hilb.convertTo(hilb, CV_64F, 1.0 / (1.1*m.cols) );	// normalizing the transform
 	
 	return hilb;				// output is of type CV_64FC2 - two channels because complex
 }
@@ -129,11 +140,14 @@ int main(int argc,char *argv[])
     int found = 0;
     unsigned int w,h,bpp=8,channels,capturenumber, cambitdepth=16, numofframes=100; 
     unsigned int numofm1slices=10, numofm2slices=10, firstaccum, secondaccum;
+    unsigned int offsetx=0, offsety=0;
+    unsigned int opw, oph;
+
      
     int camtime = 1,camgain = 1,camspeed = 1,cambinx = 2,cambiny = 2,usbtraffic = 10;
-    int camgamma = 1, indexi, indexbk;
+    int camgamma = 1, indexi, indexbk, binvalue=1;
     
-    std::ofstream outfile("ASKoutput.m");
+     
     bool doneflag=0, skeypressed=0, bkeypressed=0;
     
     w=640;
@@ -144,8 +158,37 @@ int main(int argc,char *argv[])
     
     std::ifstream infile("ASKlive.ini");
     std::string tempstring;
-    
-    
+    char dirdescr[60];
+    sprintf(dirdescr, "_");
+     
+	namedWindow("show",0); // 0 = WINDOW_NORMAL
+	moveWindow("show", 20, 0);
+	namedWindow("result",0); // 0 = WINDOW_NORMAL
+	moveWindow("result", 400, 0);
+	namedWindow("Bscan",0); // 0 = WINDOW_NORMAL
+	moveWindow("Bscan", 800, 0);
+	
+	Mat m, opm, opmvector, hilb, xsquared, ysquared, absvalue, bscan;
+	//Mat slice[numofm1slices];      // array of n images
+	// not allowed on Windows, so making it a constant
+	Mat slice[1000];
+	Mat bk[1000];      // array of n images
+	Mat res[1000];
+	Mat realcomplex[2];			// for splitting complex into real and complex
+	double minVal, maxVal;
+	//minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
+	
+	opw = w/binvalue;
+	oph = h/binvalue;
+
+	
+	char dirname[80];
+	char filename[20];
+	char pathname[40];
+	struct tm *timenow;
+	
+	time_t now = time(NULL);
+	
     // inputs from ini file
     if (infile.is_open())
 		  {
@@ -179,6 +222,14 @@ int main(int argc,char *argv[])
 			infile >> numofm2slices;
 			infile >> tempstring;
 			infile >> bscanat;
+			infile >> tempstring;
+			infile >> binvalue;
+			infile >> tempstring;
+			infile >> offsetx;
+			infile >> tempstring;
+			infile >> offsety;
+			infile >> tempstring;
+			infile >> dirdescr;
 			infile.close();
 		  }
 
@@ -186,10 +237,23 @@ int main(int argc,char *argv[])
 	   
 	   
     ///////////////////////
+    // init camera etc
     
     firstaccum = numofframes;
     secondaccum = firstaccum;
     cambitdepth = bpp;
+    
+    timenow = localtime(&now);
+	
+	strftime(dirname, sizeof(dirname), "%Y-%m-%d_%H_%M_%S-", timenow);
+	strcat(dirname, dirdescr);
+	mkdir(dirname, 0755);
+	sprintf(filename, "ASKoutput.m");
+	strcpy(pathname,dirname);
+	strcat(pathname,"/");
+	strcat(pathname,filename);
+	std::ofstream outfile(pathname);
+    
     
 
     ret = InitQHYCCDResource();
@@ -218,6 +282,12 @@ int main(int argc,char *argv[])
             found = 1;
             break;
         }
+    }
+    
+    if(found != 1)
+    {
+        printf("The camera is not QHYCCD or other error \n");
+        goto failure;
     }
 
     if(found == 1)
@@ -344,32 +414,17 @@ int main(int argc,char *argv[])
             printf("CONTROL_GAMMA fail\n");
             goto failure;
         }
-         
-        namedWindow("show",0); // 0 = WINDOW_NORMAL
-        moveWindow("show", 20, 0);
-        namedWindow("result",0); // 0 = WINDOW_NORMAL
-        moveWindow("result", 400, 0);
-        namedWindow("Bscan",0); // 0 = WINDOW_NORMAL
-        moveWindow("Bscan", 800, 0);
-        
-        Mat m, hilb, xsquared, ysquared, absvalue, bscan;
-        //Mat slice[numofm1slices];      // array of n images
-        // not allowed on Windows, so making it a constant
-        Mat slice[1000];
-        Mat bk[1000];      // array of n images
-        Mat res[1000];
-        Mat realcomplex[2];			// for splitting complex into real and complex
         
         for (indexi=0; indexi<numofm1slices; indexi++)
         {
-			slice[indexi] = Mat::zeros(cv::Size(w, h), CV_32F); 
+			slice[indexi] = Mat::zeros(cv::Size(opw, oph), CV_32F); 
 		}
 		for (indexbk=0; indexbk<numofm2slices; indexbk++)
         {
-			bk[indexbk] = Mat::zeros(cv::Size(w, h), CV_32F); 
+			bk[indexbk] = Mat::zeros(cv::Size(opw, oph), CV_32F); 
 		}
 		
-		bscan = Mat::zeros(cv::Size(w, numofm2slices), CV_64F);
+		bscan = Mat::zeros(cv::Size(opw, numofm2slices), CV_64F);
         
         if (cambitdepth==8)
         {
@@ -396,7 +451,7 @@ int main(int argc,char *argv[])
 
         /////////////////////////////////////////
         /////////////////////////////////////////
-        outfile<<"%Data cube in MATLAB compatible format - m(h,w,slice)"<<std::endl;
+        //outfile<<"%Data cube in MATLAB compatible format - m(h,w,slice)"<<std::endl;
         
         firstaccum=numofframes;
 		secondaccum=firstaccum;	
@@ -424,14 +479,18 @@ int main(int argc,char *argv[])
             
             if (ret == QHYCCD_SUCCESS)  
             {
-            
-            imshow("show",m);
+            resize(m, opm, Size(), 1.0/binvalue, 1.0/binvalue, INTER_AREA);	// binning (averaging)
+            imshow("show",opm);
             
             fps++;
             t_end = time(NULL);
                 if(t_end - t_start >= 5)
                 {
                     printf("fps = %d\n",fps / 5); 
+                    opm.copyTo(opmvector);
+                    opmvector.reshape(0,1);	//make it into a row array
+                    minMaxLoc(opmvector, &minVal, &maxVal);
+                    printf("Max intensity = %d\n", int(floor(maxVal)));
                     fps = 0;
                     t_start = time(NULL);
                 }
@@ -455,18 +514,21 @@ int main(int argc,char *argv[])
 							if (cambitdepth==8)
 							slice[indexi].convertTo(slice[indexi], CV_8U, 1.0/numofframes);		
 							
-							//outfile<<"%Data cube in MATLAB compatible format - m(w,h,slice)"<<std::endl;
+							/* outfile<<"%Data cube in MATLAB compatible format - m(w,h,slice)"<<std::endl;
 							// imagesc(slice(:,:,1)) shows the same image as is seen onscreen
 				
 							outfile<<"slice(:,:,";
 							outfile<<indexi+1;		// making the output starting index 1 instead of 0		
 							outfile<<")=";
 							outfile<<slice[indexi];
-							outfile<<";"<<std::endl;
+							outfile<<";"<<std::endl;*/
 							
-							char filename[80];
+							//char filename[80];
 							sprintf(filename, "slice%03d.png",indexi+1);
-							imwrite(filename, slice[indexi]);
+							strcpy(pathname,dirname);
+							strcat(pathname,"/");
+							strcat(pathname,filename);
+							imwrite(pathname, slice[indexi]);
 							
 							indexi++;
 							if (indexi < numofm1slices)
@@ -480,7 +542,7 @@ int main(int argc,char *argv[])
 				if (bkeypressed==1)
 				if (secondaccum>0)
 							{
-								accumulate(m, bk[indexbk]);
+								accumulate(opm, bk[indexbk]);
 								secondaccum--;
 							}
 				else if (secondaccum==0)
@@ -502,7 +564,7 @@ int main(int argc,char *argv[])
 									pow(res[indexbk], 0.5, res[indexbk]);
 									res[indexbk].convertTo(res[indexbk], CV_64F, 1.0/(std::pow(2.0, cambitdepth)) ); 
 														//normalize res to 0-1 range since it is a double
-									
+									/*
 									outfile<<"bk(:,:,";
 									outfile<<indexbk+1;		// making the output starting index 1 instead of 0		
 									outfile<<")=";
@@ -513,15 +575,21 @@ int main(int argc,char *argv[])
 									outfile<<indexbk+1;		// making the output starting index 1 instead of 0		
 									outfile<<")=";
 									outfile<<res[indexbk];
-									outfile<<";"<<std::endl;
+									outfile<<";"<<std::endl;*/
 									
-									char filename[80];
+									
 									sprintf(filename, "bk%03d.png",indexbk+1);
-									imwrite(filename, bk[indexbk]);
+									strcpy(pathname,dirname);
+									strcat(pathname,"/");
+									strcat(pathname,filename);
+									imwrite(pathname, bk[indexbk]);
 									
 									
 									sprintf(filename, "res%03d.png",indexbk+1);
-									imwrite(filename, res[indexbk]);
+									strcpy(pathname,dirname);
+									strcat(pathname,"/");
+									strcat(pathname,filename);
+									imwrite(pathname, res[indexbk]);
 									imshow("result", res[indexbk]);
 									
 									res[indexbk].row(bscanat).copyTo(bscan.row(indexbk));
@@ -539,48 +607,146 @@ int main(int argc,char *argv[])
 
 					 
 					 
-                key=waitKey(3); // wait 3 milliseconds for keypress
+                key=waitKey(5); // wait 5 milliseconds for keypress
                 
-                if (key == 27) // ESC key
+                switch (key) 
                 {
+                
+                case 27: //ESC key
 					doneflag=1;
-				}
-                
-                if (key == 's')
-                if (indexi < numofm1slices)	// don't allow captures after the end of assigned number of slices
-                skeypressed=1;
-                
-                if (key == 'b')
-                if (indexbk < numofm2slices)	// don't allow captures after the end of assigned number of slices
-                bkeypressed=1;
-                
-            } 
-            
-            if(doneflag==1)
-			{
-				
-				numofm1slices=indexi;		// in case acquisition was aborted, no need to export a lot of zeros
-				numofm2slices=indexbk;
-				
-				
-                break;
-			}   
+					break;
+					
+					case '+':
+				 
+						camtime = camtime + 10;
+						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
+						if(ret == QHYCCD_SUCCESS)
+						{
+							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+						}
+						else
+						{
+							printf("CONTROL_EXPOSURE fail\n");
+							goto failure;
+						}
+						break;
+						
+					case '-':
+				 
+						camtime = camtime - 10;
+						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
+						if(ret == QHYCCD_SUCCESS)
+						{
+							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+						}
+						else
+						{
+							printf("CONTROL_EXPOSURE fail\n");
+							goto failure;
+						}
+						break;
 
-        } // while loop end
+					case 'j':
+				 
+						camtime = camtime - 10;
+						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
+						if(ret == QHYCCD_SUCCESS)
+						{
+							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+						}
+						else
+						{
+							printf("CONTROL_EXPOSURE fail\n");
+							goto failure;
+						}
+						break;
+					case 'k':
+				 
+						camtime = camtime - 10;
+						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
+						if(ret == QHYCCD_SUCCESS)
+						{
+							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+						}
+						else
+						{
+							printf("CONTROL_EXPOSURE fail\n");
+							goto failure;
+						}
+						break;
+					case 'u':
+				 
+						camtime = camtime - 10;
+						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
+						if(ret == QHYCCD_SUCCESS)
+						{
+							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+						}
+						else
+						{
+							printf("CONTROL_EXPOSURE fail\n");
+							goto failure;
+						}
+						break;
+					case 'm':
+				 
+						camtime = camtime - 10;
+						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
+						if(ret == QHYCCD_SUCCESS)
+						{
+							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+						}
+						else
+						{
+							printf("CONTROL_EXPOSURE fail\n");
+							goto failure;
+						}
+						break;
+						
+                case 's':  
+					if (indexi < numofm1slices)	// don't allow captures after the end of assigned number of slices
+							skeypressed=1;
+					break;
+                
+                case 'b':  
+					if (indexbk < numofm2slices)	// don't allow captures after the end of assigned number of slices
+							bkeypressed=1;
+					break;
+					
+				 
+				default:
+					break;
+                
+				} 
+            
+				if(doneflag==1)
+				{
+					
+					numofm1slices=indexi;		// in case acquisition was aborted, no need to export a lot of zeros
+					numofm2slices=indexbk;
+					
+					
+					break;
+				}   
+
+			 }  // if ret success end
+        } // inner while loop end
         
+	} // end of if found 
+        
+        /*
         outfile<<"bscan=";
 		outfile<<bscan;
-		outfile<<";"<<std::endl;
-		
-		imwrite("bscan.png", bscan);
+		outfile<<";"<<std::endl;*/
+		 
+		strcpy(pathname,dirname);
+		strcat(pathname,"/");
+		strcat(pathname,"bscan.png");
+		imwrite(pathname, bscan);
          
 		
-    } // end of if found
-    else
-    {
-        printf("The camera is not QHYCCD or other error \n");
-        goto failure;
-    }
+
+ 
     
     if(camhandle)
     {
@@ -597,7 +763,7 @@ int main(int argc,char *argv[])
         }
     }
     
- 
+
 
     ret = ReleaseQHYCCDResource();
     if(ret == QHYCCD_SUCCESS)
