@@ -1,8 +1,9 @@
 #ifdef _WIN64
 #include "stdafx.h"
+#include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-#endif
+//#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -39,6 +40,7 @@
  *			01 May - adding offset, save dir
  * 			04 May - removed reload config code
  * 			05 May - merge with ASKlivebin.cpp
+ *			07 May - Visual Studio changes to compile on Windows
  */
 
 //#define _WIN64
@@ -133,19 +135,19 @@ Mat Hilbert(Mat m)
 int main(int argc,char *argv[])
 {
     int num = 0;
-    qhyccd_handle *camhandle;
+    qhyccd_handle *camhandle=NULL;
     int ret;
     char id[32];
-    char camtype[16];
+    //char camtype[16];
     int found = 0;
-    unsigned int w,h,bpp=8,channels,capturenumber, cambitdepth=16, numofframes=100; 
+    unsigned int w,h,bpp=8,channels, cambitdepth=16, numofframes=100; 
     unsigned int numofm1slices=10, numofm2slices=10, firstaccum, secondaccum;
     unsigned int offsetx=0, offsety=0;
-    unsigned int opw, oph;
+    unsigned int indexi, indexbk, opw, oph;
 
      
     int camtime = 1,camgain = 1,camspeed = 1,cambinx = 2,cambiny = 2,usbtraffic = 10;
-    int camgamma = 1, indexi, indexbk, binvalue=1;
+    int camgamma = 1, binvalue=1;
     
      
     bool doneflag=0, skeypressed=0, bkeypressed=0;
@@ -246,13 +248,21 @@ int main(int argc,char *argv[])
     timenow = localtime(&now);
 	
 	strftime(dirname, sizeof(dirname), "%Y-%m-%d_%H_%M_%S-", timenow);
+
 	strcat(dirname, dirdescr);
+#ifdef _WIN64
+	CreateDirectoryA(dirname, NULL);
+#else
 	mkdir(dirname, 0755);
+#endif
+
+#ifdef __unix__	
 	sprintf(filename, "ASKoutput.m");
 	strcpy(pathname,dirname);
 	strcat(pathname,"/");
 	strcat(pathname,filename);
 	std::ofstream outfile(pathname);
+#endif
     
     
 
@@ -524,6 +534,7 @@ int main(int argc,char *argv[])
 							outfile<<";"<<std::endl;*/
 							
 							//char filename[80];
+							
 							sprintf(filename, "slice%03d.png",indexi+1);
 							strcpy(pathname,dirname);
 							strcat(pathname,"/");
@@ -734,10 +745,11 @@ int main(int argc,char *argv[])
         
 	} // end of if found 
         
-        /*
+#ifdef __unix__
         outfile<<"bscan=";
 		outfile<<bscan;
-		outfile<<";"<<std::endl;*/
+		outfile<<";"<<std::endl;
+#endif
 		 
 		strcpy(pathname,dirname);
 		strcat(pathname,"/");
@@ -764,7 +776,7 @@ int main(int argc,char *argv[])
     }
     
 
-
+	
     ret = ReleaseQHYCCDResource();
     if(ret == QHYCCD_SUCCESS)
     {
@@ -774,7 +786,8 @@ int main(int argc,char *argv[])
     {
         goto failure;
     }
-
+	
+ 
     return 0;
 
 failure:
