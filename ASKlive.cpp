@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-//#endif
+#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -41,6 +41,7 @@
  * 			04 May - removed reload config code
  * 			05 May - merge with ASKlivebin.cpp
  *			07 May - Visual Studio changes to compile on Windows
+ * 			09 May - bug fix assert same size error in accumulate
  */
 
 //#define _WIN64
@@ -180,9 +181,6 @@ int main(int argc,char *argv[])
 	double minVal, maxVal;
 	//minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
 	
-	opw = w/binvalue;
-	oph = h/binvalue;
-
 	
 	char dirname[80];
 	char filename[20];
@@ -244,6 +242,10 @@ int main(int argc,char *argv[])
     firstaccum = numofframes;
     secondaccum = firstaccum;
     cambitdepth = bpp;
+    opw = w/binvalue;
+	oph = h/binvalue;
+
+
     
     timenow = localtime(&now);
 	
@@ -510,7 +512,7 @@ int main(int argc,char *argv[])
                 if (skeypressed==1)	
                 if (firstaccum>0)
 					{ 
-						accumulate(m, slice[indexi]);
+						accumulate(opm, slice[indexi]);
 						firstaccum--;
 					}
 				 
@@ -581,12 +583,12 @@ int main(int argc,char *argv[])
 									outfile<<")=";
 									outfile<<bk[indexbk];
 									outfile<<";"<<std::endl;
-									
+									*/
 									outfile<<"absvalue(:,:,";
 									outfile<<indexbk+1;		// making the output starting index 1 instead of 0		
 									outfile<<")=";
 									outfile<<res[indexbk];
-									outfile<<";"<<std::endl;*/
+									outfile<<";"<<std::endl;
 									
 									
 									sprintf(filename, "bk%03d.png",indexbk+1);
@@ -618,7 +620,7 @@ int main(int argc,char *argv[])
 
 					 
 					 
-                key=waitKey(5); // wait 5 milliseconds for keypress
+                key=waitKey(50); // wait 50 milliseconds for keypress
                 
                 switch (key) 
                 {
