@@ -169,33 +169,65 @@ void loop()
         } // end if camstate high
       
         else { // camstate is low, only a single click per pulse
-               
+
+          
           for (i = 0; i < pulseNos; i++) {
+
             digitalWrite(askPin, LOW);
-            for (inneri=0; inneri<12800; inneri++) {
+            delayMicroseconds(10);
+
+            Keyboard.press('s');
+            delay(1);
+            Keyboard.releaseAll();
+            delay(100);
+            // wait for capture to complete
+            // delay of 100 ms works well with 50 ms exp time. 
+
+            
+          //translate by pi - for ask, comment this out
+          // for 850 nm, pi shift = 850 / 4 = 212.5
+          // with 39.0625 nm steps,
+          // 5.44 = 6 steps
+          
+           for (inneri=0; inneri<6; inneri++) {
               digitalWrite(ledPin, HIGH);
               delayMicroseconds(10);
               digitalWrite(ledPin, LOW);
               delayMicroseconds(10); 
             }
             
-            //delay(1300);
+            delay(100);
+            // wait for motor to complete
+            
             /*digitalWrite(trigPin, HIGH);
             delay(300);
             digitalWrite(trigPin, LOW);
             delay(1500);*/
             
            // Mouse.click();
-           Keyboard.press('s');
-           delay(1);
-            Keyboard.releaseAll();
-            delay(1);
+           
             digitalWrite(askPin, HIGH);
             delayMicroseconds(10);
            // Mouse.click();
            Keyboard.press('b');
            delay(1);
            Keyboard.releaseAll();
+           delay(100);
+           // wait for capture to complete
+
+           // translate by 5 microns minus the pi shift
+           // 5 microns = 128 steps
+           // subtract from 128 the number of steps in previous inner loop.
+
+           for (inneri=0; inneri<122; inneri++) {
+              digitalWrite(ledPin, HIGH);
+              delayMicroseconds(10);
+              digitalWrite(ledPin, LOW);
+              delayMicroseconds(10); 
+            }
+           delay(100);
+           // wait for motor to complete.
+           
             stopState = digitalRead(stopPin);
             if (stopState == LOW) { 
               break;
