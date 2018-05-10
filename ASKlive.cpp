@@ -42,6 +42,7 @@
  * 			05 May - merge with ASKlivebin.cpp
  *			07 May - Visual Studio changes to compile on Windows
  * 			09 May - bug fix assert same size error in accumulate
+ * 			10 May - bug fix - need to multiply by 255 (or normalizing factor) before imwrite
  */
 
 //#define _WIN64
@@ -148,7 +149,7 @@ int main(int argc,char *argv[])
 
      
     int camtime = 1,camgain = 1,camspeed = 1,cambinx = 2,cambiny = 2,usbtraffic = 10;
-    int camgamma = 1, binvalue=1;
+    int camgamma = 1, binvalue=1, normfactor=255;
     
      
     bool doneflag=0, skeypressed=0, bkeypressed=0;
@@ -230,6 +231,8 @@ int main(int argc,char *argv[])
 			infile >> offsety;
 			infile >> tempstring;
 			infile >> dirdescr;
+			infile >> tempstring;
+			infile >> normfactor;
 			infile.close();
 		  }
 
@@ -602,7 +605,9 @@ int main(int argc,char *argv[])
 									strcpy(pathname,dirname);
 									strcat(pathname,"/");
 									strcat(pathname,filename);
-									imwrite(pathname, res[indexbk]);
+									imwrite(pathname, normfactor*res[indexbk]); 
+									// imwrite takes the Mat value to be 0-255
+									// imshow auto-scales 0-1 to 255 for CV64F
 									imshow("result", res[indexbk]);
 									
 									res[indexbk].row(bscanat).copyTo(bscan.row(indexbk));
@@ -756,7 +761,7 @@ int main(int argc,char *argv[])
 		strcpy(pathname,dirname);
 		strcat(pathname,"/");
 		strcat(pathname,"bscan.png");
-		imwrite(pathname, bscan);
+		imwrite(pathname, normfactor*bscan);
          
 		
 
