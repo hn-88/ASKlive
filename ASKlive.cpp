@@ -149,7 +149,7 @@ int main(int argc,char *argv[])
 
      
     int camtime = 1,camgain = 1,camspeed = 1,cambinx = 2,cambiny = 2,usbtraffic = 10;
-    int camgamma = 1, binvalue=1, normfactor=255;
+    int camgamma = 1, binvalue=1, normfactor=1, normfactorforsave=255;
     
      
     bool doneflag=0, skeypressed=0, bkeypressed=0;
@@ -247,9 +247,7 @@ int main(int argc,char *argv[])
     cambitdepth = bpp;
     opw = w/binvalue;
 	oph = h/binvalue;
-
-
-    
+	normfactorforsave = 255*normfactor;
     timenow = localtime(&now);
 	
 	strftime(dirname, sizeof(dirname), "%Y-%m-%d_%H_%M_%S-", timenow);
@@ -605,13 +603,13 @@ int main(int argc,char *argv[])
 									strcpy(pathname,dirname);
 									strcat(pathname,"/");
 									strcat(pathname,filename);
-									imwrite(pathname, normfactor*res[indexbk]); 
+									imwrite(pathname, normfactorforsave*res[indexbk]); 
 									// imwrite takes the Mat value to be 0-255
 									// imshow auto-scales 0-1 to 255 for CV64F
-									imshow("result", res[indexbk]);
+									imshow("result", normfactor*res[indexbk]);
 									
 									res[indexbk].row(bscanat).copyTo(bscan.row(indexbk));
-									imshow("Bscan",bscan);
+									imshow("Bscan",normfactor*bscan);
 									
 									indexbk++;
 									printf("BK acquisition %d done.\n", indexbk);
@@ -756,12 +754,26 @@ int main(int argc,char *argv[])
         outfile<<"bscan=";
 		outfile<<bscan;
 		outfile<<";"<<std::endl;
+		outfile<<"% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, numofframesavg, numofm1slices, binvalue, offsetx, offsety, normfactor"<<std::endl;
+				outfile<<"% "<<camgain; 
+				outfile<<", "<<camtime;  
+				outfile<<", "<<bpp; 
+				outfile<<", "<<w ; 
+				outfile<<", "<<h ; 
+				outfile<<", "<<camspeed ;
+				outfile<<", "<<usbtraffic ;
+				outfile<<", "<<numofframes ;
+				outfile<<", "<<numofm1slices ;
+				outfile<<", "<<binvalue ;
+				outfile<<", "<<offsetx ;
+				outfile<<", "<<offsety;
+				outfile<<", "<<normfactor;
 #endif
 		 
 		strcpy(pathname,dirname);
 		strcat(pathname,"/");
 		strcat(pathname,"bscan.png");
-		imwrite(pathname, normfactor*bscan);
+		imwrite(pathname, normfactorforsave*bscan);
          
 		
 
