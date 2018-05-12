@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-#endif
+// #endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -255,6 +255,7 @@ int main(int argc,char *argv[])
 	strcat(dirname, dirdescr);
 #ifdef _WIN64
 	CreateDirectoryA(dirname, NULL);
+	
 #else
 	mkdir(dirname, 0755);
 #endif
@@ -585,11 +586,13 @@ int main(int argc,char *argv[])
 									outfile<<bk[indexbk];
 									outfile<<";"<<std::endl;
 									*/
+#ifdef __unix__
 									outfile<<"absvalue(:,:,";
 									outfile<<indexbk+1;		// making the output starting index 1 instead of 0		
 									outfile<<")=";
 									outfile<<res[indexbk];
 									outfile<<";"<<std::endl;
+#endif
 									
 									
 									sprintf(filename, "bk%03d.png",indexbk+1);
