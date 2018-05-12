@@ -540,10 +540,14 @@ int main(int argc,char *argv[])
 							//char filename[80];
 							
 							sprintf(filename, "slice%03d.png",indexi+1);
+#ifdef __unix__
 							strcpy(pathname,dirname);
 							strcat(pathname,"/");
 							strcat(pathname,filename);
 							imwrite(pathname, slice[indexi]);
+#else
+							imwrite(filename, slice[indexi]);
+#endif
 							
 							indexi++;
 							if (indexi < numofm1slices)
@@ -596,17 +600,24 @@ int main(int argc,char *argv[])
 									
 									
 									sprintf(filename, "bk%03d.png",indexbk+1);
+#ifdef __unix__
 									strcpy(pathname,dirname);
 									strcat(pathname,"/");
 									strcat(pathname,filename);
 									imwrite(pathname, bk[indexbk]);
-									
+#else
+									imwrite(filename, bk[indexbk]);
+#endif
 									
 									sprintf(filename, "res%03d.png",indexbk+1);
+#ifdef __unix__
 									strcpy(pathname,dirname);
 									strcat(pathname,"/");
 									strcat(pathname,filename);
-									imwrite(pathname, normfactorforsave*res[indexbk]); 
+									imwrite(pathname, normfactorforsave*res[indexbk]);
+#else
+									imwrite(filename, normfactorforsave*res[indexbk]); 
+#endif
 									// imwrite takes the Mat value to be 0-255
 									// imshow auto-scales 0-1 to 255 for CV64F
 									imshow("result", normfactor*res[indexbk]);
@@ -771,12 +782,16 @@ int main(int argc,char *argv[])
 				outfile<<", "<<offsetx ;
 				outfile<<", "<<offsety;
 				outfile<<", "<<normfactor;
-#endif
+
 		 
 		strcpy(pathname,dirname);
 		strcat(pathname,"/");
 		strcat(pathname,"bscan.png");
 		imwrite(pathname, normfactorforsave*bscan);
+#else
+		imwrite("bscan.png", normfactorforsave*bscan);
+#endif
+
          
 		
 
