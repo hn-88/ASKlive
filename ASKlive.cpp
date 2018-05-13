@@ -255,7 +255,8 @@ int main(int argc,char *argv[])
 	strcat(dirname, dirdescr);
 #ifdef _WIN64
 	CreateDirectoryA(dirname, NULL);
-	
+	cv::FileStorage outfile;
+	outfile.open("ASKoutput.xml", cv::FileStorage::WRITE);
 #else
 	mkdir(dirname, 0755);
 #endif
@@ -596,6 +597,9 @@ int main(int argc,char *argv[])
 									outfile<<")=";
 									outfile<<res[indexbk];
 									outfile<<";"<<std::endl;
+#else 
+									sprintf(filename, "absvalue%u", indexbk + 1);
+									outfile<<filename<<res[indexbk];
 #endif
 									
 									
@@ -790,6 +794,22 @@ int main(int argc,char *argv[])
 		imwrite(pathname, normfactorforsave*bscan);
 #else
 		imwrite("bscan.png", normfactorforsave*bscan);
+		outfile << "bscan" << bscan;
+		outfile << "camgain" << camgain;
+		outfile << "camtime" << camtime;
+		 
+		//outfile << "bpp" << bpp;
+		//outfile << "w" << w;
+		//outfile << "h" << h;
+		//outfile << "camspeed" << camspeed;
+		//outfile << "usbtraffic" << usbtraffic;
+		//outfile << "numofframes" << numofframes;
+		//outfile << "numofm1slices" << numofm1slices;
+		//outfile << "binvalue" << binvalue;
+		//outfile << "offsetx" << offsetx;
+		//outfile << "offsety" << offsety;
+		outfile << "normfactor" << normfactor;
+		 
 #endif
 
          
