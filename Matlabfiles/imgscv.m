@@ -1,8 +1,11 @@
 figure;
 indexi=1;
+vari = input('Enter variable name');
+maxx = input('Enter max number of images');
+V=vari;
 while(1)
     imagesc(V(:,:,indexi));colorbar;
-    title(sprintf('slice %d', indexi));
+    title(sprintf('Image %d', indexi));
     
     x=kbhit();
     if (x=='q')
@@ -11,7 +14,7 @@ while(1)
     
     if (x=='n')
      indexi++;
-     if indexi>148
+     if indexi>maxx
       indexi=1;
      end
     end
@@ -19,7 +22,7 @@ while(1)
     if (x=='p')
      indexi--;
      if indexi<1
-      indexi=148;
+      indexi=maxx;
      end
     end
 end
