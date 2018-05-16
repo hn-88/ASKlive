@@ -1,8 +1,9 @@
 #ifdef _WIN64
 #include "stdafx.h"
+#include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-#endif
+//#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -390,7 +391,11 @@ int main(int argc,char *argv[])
 		
 		strftime(dirname, sizeof(dirname), "%Y-%m-%d_%H_%M_%S-", timenow);
 		strcat(dirname, dirdescr);
+#ifdef __unix__
         mkdir(dirname, 0755);
+#else
+		CreateDirectoryA(dirname, NULL);
+#endif
         sprintf(filename, "PSFoutput.m");
 		strcpy(pathname,dirname);
 		strcat(pathname,"/");
@@ -416,8 +421,8 @@ int main(int argc,char *argv[])
             
             Ptr<plot::Plot2d> plot = plot::Plot2d::create( data_x, -data_y );
                 //plot has y going downwards by default, so -data_y
-                //plot->setMinY(-255.0);
-                //plot->setMaxY(0.0);
+                plot->setMinY(-255.0);
+                plot->setMaxY(0.0);
                 plot->render(plot_result);
                 imshow( "plot", plot_result );
                 
