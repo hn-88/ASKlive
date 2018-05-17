@@ -168,7 +168,7 @@ void loop()
               delayMicroseconds(10); 
             }
             
-            delay(50);
+            delay(100);
             /*digitalWrite(trigPin, HIGH);
             delay(300);
             digitalWrite(trigPin, LOW);
@@ -178,12 +178,14 @@ void loop()
            Keyboard.press('s');
            delay(1);
             Keyboard.releaseAll();
-            delay(50);
+            delay(100);
             // 640x480 16 bit goes at 50 fps
             // assuming a factor of 2 for safety, 
             // 40 ms delay for 25 fps
 
             // 50 ms + 50 ms delay works well for 640x480 10x10 bin no avg
+
+            // 100 ms + 100 ms delay works well for 25 ms exp time
             
             stopState = digitalRead(stopPin);
             if (stopState == LOW) { 

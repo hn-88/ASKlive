@@ -177,8 +177,8 @@ void loop()
             delayMicroseconds(10);
 
             Keyboard.press('s');
-            delay(1);
-            Keyboard.releaseAll();
+            delay(5);
+            Keyboard.release('s');
             delay(100);
             // wait for capture to complete
             // delay of 100 ms works well with 50 ms exp time. 
@@ -189,14 +189,16 @@ void loop()
           // with 39.0625 nm steps,
           // 5.44 = 6 steps
           
-           for (inneri=0; inneri<6; inneri++) {
-              digitalWrite(ledPin, HIGH);
-              delayMicroseconds(10);
-              digitalWrite(ledPin, LOW);
-              delayMicroseconds(10); 
-            }
-            
-            delay(100);
+//           for (inneri=0; inneri<6; inneri++) {
+//              digitalWrite(ledPin, HIGH);
+//              delayMicroseconds(10);
+//              delay(1);
+//              digitalWrite(ledPin, LOW);
+//              delayMicroseconds(10); 
+//              delay(1);
+//            }
+//            
+            delay(1000);
             // wait for motor to complete
             
             /*digitalWrite(trigPin, HIGH);
@@ -210,8 +212,8 @@ void loop()
             delayMicroseconds(10);
            // Mouse.click();
            Keyboard.press('b');
-           delay(1);
-           Keyboard.releaseAll();
+           delay(5);
+           Keyboard.release('b');
            delay(100);
            // wait for capture to complete
 
@@ -219,13 +221,15 @@ void loop()
            // 5 microns = 128 steps
            // subtract from 128 the number of steps in previous inner loop.
 
-           for (inneri=0; inneri<122; inneri++) {
+           for (inneri=0; inneri<1; inneri++) {
               digitalWrite(ledPin, HIGH);
               delayMicroseconds(10);
+              delay(1);
               digitalWrite(ledPin, LOW);
               delayMicroseconds(10); 
+              delay(1);
             }
-           delay(100);
+           delay(1000);
            // wait for motor to complete.
            
             stopState = digitalRead(stopPin);
