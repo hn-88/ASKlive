@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-// #endif
+#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -43,6 +43,7 @@
  *			07 May - Visual Studio changes to compile on Windows
  * 			09 May - bug fix assert same size error in accumulate
  * 			10 May - bug fix - need to multiply by 255 (or normalizing factor) before imwrite
+ * 			17 May - adding max intensity projection - MIP
  */
 
 //#define _WIN64
@@ -171,15 +172,17 @@ int main(int argc,char *argv[])
 	moveWindow("result", 400, 0);
 	namedWindow("Bscan",0); // 0 = WINDOW_NORMAL
 	moveWindow("Bscan", 800, 0);
+	namedWindow("MIP",0); // 0 = WINDOW_NORMAL
+	moveWindow("MIP", 1200, 0);
 	
-	Mat m, opm, opmvector, hilb, xsquared, ysquared, absvalue, bscan;
+	Mat m, opm, opmvector, hilb, xsquared, ysquared, absvalue, bscan, mipscan;
 	//Mat slice[numofm1slices];      // array of n images
 	// not allowed on Windows, so making it a constant
 	Mat slice[1000];
 	Mat bk[1000];      // array of n images
 	Mat res[1000];
 	Mat realcomplex[2];			// for splitting complex into real and complex
-	double minVal, maxVal;
+	double minVal, maxVal, pixVal;
 	//minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
 	
 	
@@ -440,6 +443,7 @@ int main(int argc,char *argv[])
 		}
 		
 		bscan = Mat::zeros(cv::Size(opw, numofm2slices), CV_64F);
+		mipscan = Mat::zeros(cv::Size(opw, numofm2slices), CV_64F);
         
         if (cambitdepth==8)
         {
@@ -629,6 +633,18 @@ int main(int argc,char *argv[])
 									res[indexbk].row(bscanat).copyTo(bscan.row(indexbk));
 									imshow("Bscan",normfactor*bscan);
 									
+									res[indexbk].row(bscanat).copyTo(mipscan.row(indexbk));
+									
+									for(int j=0; j<opw; j++)
+										for (int k=0; k<oph; k++)
+									{
+										res[indexbk].at<double>(k, j) = pixVal;
+										if (pixVal>mipscan.at<double>(indexbk, j) )
+											mipscan.at<double>(indexbk, j) = pixVal;
+											
+									}
+									imshow("MIP",normfactor*mipscan);
+									
 									indexbk++;
 									printf("BK acquisition %d done.\n", indexbk);
 									
@@ -772,6 +788,9 @@ int main(int argc,char *argv[])
         outfile<<"bscan=";
 		outfile<<bscan;
 		outfile<<";"<<std::endl;
+		outfile<<"MIP=";
+		outfile<<mipscan;
+		outfile<<";"<<std::endl;
 		outfile<<"% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, numofframesavg, numofm1slices, binvalue, offsetx, offsety, normfactor"<<std::endl;
 				outfile<<"% "<<camgain; 
 				outfile<<", "<<camtime;  
@@ -792,9 +811,16 @@ int main(int argc,char *argv[])
 		strcat(pathname,"/");
 		strcat(pathname,"bscan.png");
 		imwrite(pathname, normfactorforsave*bscan);
+				
+		strcpy(pathname,dirname);
+		strcat(pathname,"/");
+		strcat(pathname,"MIP.png");
+		imwrite(pathname, normfactorforsave*mipscan);
 #else
 		imwrite("bscan.png", normfactorforsave*bscan);
+		imwrite("MIP.png", normfactorforsave*mipscan);
 		outfile << "bscan" << bscan;
+		outfile << "MIP" << mipscan;
 		outfile << "camgain" << camgain;
 		outfile << "camtime" << camtime;
 		 
