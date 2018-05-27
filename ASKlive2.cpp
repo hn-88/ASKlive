@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-#endif
+//#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -701,9 +701,9 @@ int main(int argc,char *argv[])
 									for(int j=0; j<opw; j++)
 										for (int k=0; k<oph; k++)
 									{
-										res[indexbk].at<double>(k, j) = pixVal;
-										if (pixVal>mipscan.at<double>(indexbk, j) )
-											mipscan.at<double>(indexbk, j) = pixVal;
+											pixVal = res[indexbk].at<double>(k, j);
+											if (pixVal>mipscan.at<double>(indexbk, j))
+												mipscan.at<double>(indexbk, j) = pixVal;
 											
 									}
 									imshow("MIP",normfactor*mipscan);
