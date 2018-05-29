@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-//#endif
+#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -626,7 +626,7 @@ int main(int argc,char *argv[])
 														*/
 									for (indextemp=0; indextemp<numofframes; indextemp++)
 									{
-										subtract(m1[indextemp], m2[indextemp], subtracted[indextemp]);
+										subtract(m1[indextemp], m2[indextemp], subtracted[indextemp],noArray(), CV_64F);
 										hilb=Hilbert(subtracted[indextemp]);
 										split(hilb, realcomplex);	
 										multiply(realcomplex[0], realcomplex[0], xsquared);
