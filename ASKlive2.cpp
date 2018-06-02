@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-#endif
+//#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -151,6 +151,9 @@ Mat Hilbert(Mat m)
 
 int main(int argc,char *argv[])
 {
+#ifdef _WIN64
+	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+#endif
     int num = 0;
     qhyccd_handle *camhandle=NULL;
     int ret;
