@@ -21,8 +21,19 @@
  * and inputs from ini file.
  * 
  * Captures frames on receipt of s key 
+ * and b for background.
  * (from Arduino emulating a keyboard using
  * KeyboardWrite function.)
+ * 
+ * + key increases exposure time by 0.1 ms
+ * - key decreases exposure time by 0.1 ms
+ * u key increases exposure time by 1 ms
+ * d key decreases exposure time by 1 ms
+ * U key increases exposure time by 10 ms
+ * D key decreases exposure time by 10 ms
+ * ESC key quits
+ * 
+ * 
  * 
  * Hari Nandakumar
  * 17 Feb 2018
@@ -46,6 +57,7 @@
  * 			17 May - adding max intensity projection - MIP
  * 			26 May - another version - ASKlive2 - averaging after Hilbert transform
  * 						and saving un-averaged images also.
+ * 			 2 Jun - cleaning up the case statement, adding faster exp changes
  */
 
 //#define _WIN64
@@ -732,7 +744,7 @@ int main(int argc,char *argv[])
 					
 					case '+':
 				 
-						camtime = camtime + 10;
+						camtime = camtime + 100;
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
@@ -747,7 +759,7 @@ int main(int argc,char *argv[])
 						
 					case '-':
 				 
-						camtime = camtime - 10;
+						camtime = camtime - 100;
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
@@ -760,9 +772,9 @@ int main(int argc,char *argv[])
 						}
 						break;
 
-					case 'j':
+					case 'U':
 				 
-						camtime = camtime - 10;
+						camtime = camtime + 10000;
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
@@ -774,9 +786,9 @@ int main(int argc,char *argv[])
 							goto failure;
 						}
 						break;
-					case 'k':
+					case 'D':
 				 
-						camtime = camtime - 10;
+						camtime = camtime - 10000;
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
@@ -790,7 +802,7 @@ int main(int argc,char *argv[])
 						break;
 					case 'u':
 				 
-						camtime = camtime - 10;
+						camtime = camtime + 1000;
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
@@ -802,9 +814,9 @@ int main(int argc,char *argv[])
 							goto failure;
 						}
 						break;
-					case 'm':
+					case 'd':
 				 
-						camtime = camtime - 10;
+						camtime = camtime - 1000;
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
