@@ -10,12 +10,11 @@
 
 
 /*
- * modified from ASKlive.cpp
- * and LiveFrameGraph.cpp
+ * modified from AFstats.cpp
+ * and https://docs.opencv.org/2.4/_downloads/discrete_fourier_transform.cpp
  * 
  * Implementing Auto Focus - 
- * preliminary test with display of graph with
- * Std deviation, Max and Min pix values
+ * preliminary test with display of FFT of image
  * 
  * * 
  * + key increases exposure time by 0.1 ms
@@ -27,7 +26,7 @@
  * ESC key quits
  * 
  * Hari Nandakumar
- * 01 Jul 2018
+ * 04 Jul 2018
  *
  */
 
@@ -81,13 +80,14 @@ int main(int argc,char *argv[])
     int  fps, key, bscanat;
     int t_start,t_end;
     
-    std::ifstream infile("AFstats.ini");
+    std::ifstream infile("AFfft.ini");
     std::string tempstring;
-    char dirdescr[60];
-    sprintf(dirdescr, "_");
+     
      
 	namedWindow("show",0); // 0 = WINDOW_NORMAL
-	moveWindow("show", 20, 0);
+	moveWindow("show", 0, 0);
+	namedWindow("spectrum magnitude",0); // 0 = WINDOW_NORMAL
+	moveWindow("spectrum magnitude", 650, 0);
 	
 	Mat m, opm, opmvector;
 	Scalar meansc, stddevsc;
@@ -95,6 +95,26 @@ int main(int argc,char *argv[])
 	Mat data_x( 1, w/2, CV_64F );
     Mat data_y( 1, w/2, CV_64F );
     Mat data_y2( 1, w/2, CV_64F );
+    // for FFT
+    Mat I, padded, paddedf, xsq, ysq;
+    int mint,nint;
+    
+    
+    Mat planes[2] ;
+    Mat complexI;
+    
+    Mat magI ;
+
+    
+    int cx ;
+    int cy ;
+
+    Mat q0;   // Top-Left - Create a ROI per quadrant
+    Mat q1;  // Top-Right
+    Mat q2;  // Bottom-Left
+    Mat q3; // Bottom-Right
+
+    Mat tmp;
     
     for ( int i = 0; i < data_x.cols; i++ )
 		{
@@ -104,8 +124,6 @@ int main(int argc,char *argv[])
 			data_y2.at<double>( 0, i ) = 0;
 		}
         
-	//Mat slice[numofm1slices];      // array of n images
-	// not allowed on Windows, so making it a constant
 	
 	double minVal, maxVal,  pixVal;
 	int graphindex=0;
@@ -371,7 +389,8 @@ int main(int argc,char *argv[])
 				data_y=Mat::zeros(cv::Size(1, w/2), CV_64F);
 			}
             
-            Ptr<plot::Plot2d> plot = plot::Plot2d::create( data_x, data_y );
+            /*
+             * Ptr<plot::Plot2d> plot = plot::Plot2d::create( data_x, data_y );
             plot->setInvertOrientation(1);				// to make it increase y axis upwards
 			plot->setShowText(0);
 			plot->setPlotLineColor(Scalar(0, 255, 255));
@@ -395,6 +414,65 @@ int main(int argc,char *argv[])
 			plot_result = plot_result1 + plot_result2;
 			
 			imshow( "Max - Min in yellow, Std Dev in red", plot_result );
+			* */
+			
+			// from FFT example
+			I=opm;
+			
+												//expand input image to optimal size
+			mint = getOptimalDFTSize( I.rows );
+			nint = getOptimalDFTSize( I.cols ); // on the border add zero values
+			copyMakeBorder(I, padded, 0, mint - I.rows, 0, nint - I.cols, BORDER_CONSTANT, Scalar::all(0));
+			padded.convertTo(paddedf, CV_64F);
+
+			//padded.copyTo(planes[0]);
+			//planes[1] =  Mat::zeros(padded.size(), CV_64F);
+			 
+			//merge(planes, 2, complexI);         // Add to the expanded another plane with zeros
+
+			dft(paddedf, complexI);            
+
+			// compute the magnitude and switch to logarithmic scale
+			// => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
+			split(complexI, planes);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
+			
+			//magnitude(planes[0], planes[1], magI);// planes[0] = magnitude
+			//magI = planes[0];
+			multiply(planes[0], planes[0], xsq);
+			multiply(planes[1], planes[1], ysq);
+			pow(xsq+ysq, 0.5, magI);
+
+			magI += Scalar::all(1);                    // switch to logarithmic scale
+			log(magI, magI);
+
+			// crop the spectrum, if it has an odd number of rows or columns
+			magI = magI(Rect(0, 0, magI.cols & -2, magI.rows & -2));
+
+			// rearrange the quadrants of Fourier image  so that the origin is at the image center
+			cx = magI.cols/2;
+			cy = magI.rows/2;
+
+			q0 = Mat(magI, Rect(0, 0, cx, cy));   // Top-Left - Create a ROI per quadrant
+			q1 = Mat(magI, Rect(cx, 0, cx, cy));  // Top-Right
+			q2 = Mat(magI, Rect(0, cy, cx, cy));  // Bottom-Left
+			q3 = Mat(magI, Rect(cx, cy, cx, cy)); // Bottom-Right
+
+			tmp;                           // swap quadrants (Top-Left with Bottom-Right)
+			q0.copyTo(tmp);
+			q3.copyTo(q0);
+			tmp.copyTo(q3);
+
+			q1.copyTo(tmp);                    // swap quadrant (Top-Right with Bottom-Left)
+			q2.copyTo(q1);
+			tmp.copyTo(q2);
+
+			normalize(magI, magI, 0, 1, CV_MINMAX); // Transform the matrix with float values into a
+													// viewable image form (float between values 0 and 1).
+
+			//imshow("Input Image"       , I   );    // Show the result
+			imshow("spectrum magnitude", magI);
+    
+                /////////////////////////////////////
                 
             fps++;
             t_end = time(NULL);
@@ -405,7 +483,7 @@ int main(int argc,char *argv[])
                     printf("Max intensity = %d\n", int(floor(maxVal)));
                     printf("Min intensity = %d\n", int(floor(minVal)));
                     printf("Std Deviation = %d\n", int(floor(stddevsc[0])));
-                    printf("Norm. max-min = %d%\n", int(floor(100*(maxVal-minVal)/(maxVal+minVal))) );
+                    printf("Norm. max-min = %d percent \n", int(floor(100*(maxVal-minVal)/(maxVal+minVal))) );
                     fps = 0;
                     t_start = time(NULL);
                 }
