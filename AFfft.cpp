@@ -437,7 +437,7 @@ int main(int argc,char *argv[])
 			split(complexI, planes);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
 			
 			//magnitude(planes[0], planes[1], magI);// planes[0] = magnitude
-			//magI = planes[0];
+			//magI = planes[0]; // this is just for testing
 			multiply(planes[0], planes[0], xsq);
 			multiply(planes[1], planes[1], ysq);
 			pow(xsq+ysq, 0.5, magI);
