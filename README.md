@@ -1,4 +1,4 @@
-Code to do ASK background subtraction for FF OCT using QHY cameras.
+Code to do ASK background subtraction for FF OCT using QHY cameras. ASKlive2.cpp has the relevant code. Other files are helpers and or other versions. 
 
 Documentation for basic compiling instructions etc is at
 https://github.com/hn-88/QHYCameratests/blob/master/readme.txt
